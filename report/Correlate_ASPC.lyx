@@ -1,0 +1,864 @@
+#LyX 2.0 created this file. For more info see http://www.lyx.org/
+\lyxformat 413
+\begin_document
+\begin_header
+\textclass article
+\use_default_options true
+\maintain_unincluded_children false
+\language english
+\language_package default
+\inputencoding auto
+\fontencoding global
+\font_roman default
+\font_sans default
+\font_typewriter default
+\font_default_family default
+\use_non_tex_fonts false
+\font_sc false
+\font_osf false
+\font_sf_scale 100
+\font_tt_scale 100
+
+\graphics default
+\default_output_format default
+\output_sync 0
+\bibtex_command default
+\index_command default
+\paperfontsize default
+\spacing single
+\use_hyperref false
+\papersize default
+\use_geometry true
+\use_amsmath 1
+\use_esint 1
+\use_mhchem 1
+\use_mathdots 1
+\cite_engine basic
+\use_bibtopic false
+\use_indices false
+\paperorientation portrait
+\suppress_date false
+\use_refstyle 1
+\index Index
+\shortcut idx
+\color #008000
+\end_index
+\leftmargin 1in
+\topmargin 1in
+\rightmargin 1in
+\bottommargin 1in
+\headheight 1cm
+\headsep 1cm
+\footskip 1cm
+\secnumdepth 2
+\tocdepth 2
+\paragraph_separation indent
+\paragraph_indentation default
+\quotes_language english
+\papercolumns 1
+\papersides 1
+\paperpagestyle default
+\tracking_changes false
+\output_changes false
+\html_math_output 0
+\html_css_as_file 0
+\html_be_strict false
+\end_header
+
+\begin_body
+
+\begin_layout Title
+Fluorescence Correlation Data via MATLAB
+\end_layout
+
+\begin_layout Author
+Leland J.
+ Jefferis
+\begin_inset Foot
+status open
+
+\begin_layout Plain Layout
+University of Wisconsin - Madison, Department of Mathematics.
+ Email: jefferis@math.wisc.edu
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Date
+\begin_inset ERT
+status open
+
+\begin_layout Plain Layout
+
+
+\backslash
+today
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Section
+Introduction
+\end_layout
+
+\begin_layout Standard
+The paper 
+\begin_inset CommandInset citation
+LatexCommand cite
+key "WahlGregorPattingEnderlein2003"
+
+\end_inset
+
+ describes an algorithm for obtaining a correlation curve from 
+\emph on
+Asynchronous Single-Photon Counting 
+\emph default
+(ASPC) data.
+ This document is a description of the various details which arose in the
+ specific implementation of this method in MATLAB.
+ In particular, there are parts in the description of the method in 
+\begin_inset CommandInset citation
+LatexCommand cite
+key "WahlGregorPattingEnderlein2003"
+
+\end_inset
+
+ which are either unclear or missing and here, I hope to fill in these gaps.
+ My goal for this document is to fully equip any user of the MATLAB function
+ 
+\begin_inset Quotes eld
+\end_inset
+
+Correlate_ASPC
+\begin_inset Quotes erd
+\end_inset
+
+ to modify the code to their needs.
+ It is assumed, for the sake of this report, that the paper 
+\begin_inset CommandInset citation
+LatexCommand cite
+key "WahlGregorPattingEnderlein2003"
+
+\end_inset
+
+ has been read completely.
+ I will also make reference to the paper 
+\begin_inset CommandInset citation
+LatexCommand cite
+key "SchwilleHaustein2009"
+
+\end_inset
+
+, but only Section 3 of 
+\begin_inset CommandInset citation
+LatexCommand cite
+key "SchwilleHaustein2009"
+
+\end_inset
+
+ is necessary for my discussion.
+\end_layout
+
+\begin_layout Section
+The Method
+\end_layout
+
+\begin_layout Subsection
+The correlation function
+\end_layout
+
+\begin_layout Standard
+ASPC data appears simply as an increasing sequence of arrival times and
+ due to the limited resolution of any particular photon detector, all arrival
+ times will be integer multiples of a minimal detectable time 
+\begin_inset Formula $\delta t$
+\end_inset
+
+.
+ Then we construct the discreet intensity function 
+\begin_inset Formula 
+\[
+I(t)=\begin{cases}
+\frac{1}{\delta t} & \text{ if a photon detected at time t}\\
+0 & \text{ otherwise}
+\end{cases}
+\]
+
+\end_inset
+
+If the total time of the experiment is defined as 
+\begin_inset Formula $T$
+\end_inset
+
+, then the total number of times for which 
+\begin_inset Formula $I(t)$
+\end_inset
+
+ is defined is simply 
+\begin_inset Formula $T/\delta t$
+\end_inset
+
+.
+ Define the average of 
+\begin_inset Formula $I(t)$
+\end_inset
+
+ as
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\begin{equation}
+\langle I(t)\rangle=\frac{\delta t}{T}\sum_{t}I(t)\label{eq:avg}
+\end{equation}
+
+\end_inset
+
+where the sum is taken from the first arrival time to the final arrival
+ time.
+ As in 
+\begin_inset CommandInset citation
+LatexCommand cite
+key "SchwilleHaustein2009"
+
+\end_inset
+
+, define 
+\begin_inset Formula 
+\[
+\delta I(t)=I(t)-\langle I(t)\rangle
+\]
+
+\end_inset
+
+so that the normalized autocorrelation function at a lag time 
+\begin_inset Formula $\tau$
+\end_inset
+
+ (also an integer multiple of 
+\begin_inset Formula $\delta t$
+\end_inset
+
+) is given by
+\begin_inset Formula 
+\begin{equation}
+G(\tau)=\frac{\langle\delta I(t)\cdot\delta I(t+\tau)\rangle}{\langle I(t)\rangle^{2}}.\label{eq:AutoCorFun}
+\end{equation}
+
+\end_inset
+
+A quick bit of algebra allows one to rewrite (
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "eq:AutoCorFun"
+
+\end_inset
+
+) as 
+\begin_inset Formula 
+\begin{equation}
+G(\tau)=\frac{\langle I(t)\cdot I(t+\tau)\rangle}{\langle I(t)\rangle^{2}}-1.\label{eq:AutoCorFunSimp}
+\end{equation}
+
+\end_inset
+
+The numerator of the fraction in (
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "eq:AutoCorFunSimp"
+
+\end_inset
+
+) may be written as 
+\begin_inset Formula 
+\[
+\langle I(t)\cdot I(t+\tau)\rangle=\frac{1}{T\delta t}\times\{\textit{number of collisions}\}_{\tau}
+\]
+
+\end_inset
+
+where the 
+\emph on
+number of collisions
+\emph default
+ counts the number of times at which 
+\begin_inset Formula $I(t)$
+\end_inset
+
+ and 
+\begin_inset Formula $I(t+\tau)$
+\end_inset
+
+ are both non-zero.
+ Note that the subscript 
+\begin_inset Formula $\tau$
+\end_inset
+
+ in the number of collisions indicates that this quantity is dependent on
+ the lag time 
+\begin_inset Formula $\tau$
+\end_inset
+
+.
+ The denominator of the fraction in (
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "eq:AutoCorFunSimp"
+
+\end_inset
+
+) may be written as 
+\begin_inset Formula 
+\[
+\langle I(t)\rangle^{2}=\left(\frac{1}{T}\right)^{2}\times\{\textit{number of data points}\}^{2}
+\]
+
+\end_inset
+
+and 
+\emph on
+number of data points
+\emph default
+ is the number of data points in the file being analyzed.
+ Thus finally, (
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "eq:AutoCorFun"
+
+\end_inset
+
+) becomes
+\begin_inset Formula 
+\begin{equation}
+G(\tau)=\frac{T}{\delta t}\times\frac{\{\textit{number of collisions}\}_{\tau}}{\{\textit{number of data points}\}^{2}}-1.\label{eq:FinalAutoCorFun}
+\end{equation}
+
+\end_inset
+
+This form for 
+\begin_inset Formula $G(\tau)$
+\end_inset
+
+ makes clear that the number of collisions is the only term which varies
+ with 
+\begin_inset Formula $\tau$
+\end_inset
+
+ and is therefore the focus of the computation.
+ Without time coarsening (introduced next) it is fairly straight forward
+ to compute the number of collisions, but since this was discussed fully
+ in 
+\begin_inset CommandInset citation
+LatexCommand cite
+key "WahlGregorPattingEnderlein2003"
+
+\end_inset
+
+ I will continue on.
+\end_layout
+
+\begin_layout Subsection
+Time coarsening
+\end_layout
+
+\begin_layout Standard
+It is customary to display autocorrelation result on a log scale so it is
+ desirable to choose a set of time lag values 
+\begin_inset Formula $\tau$
+\end_inset
+
+ which are exponentially spaced.
+ I chose to use the time lag values in the same way as 
+\begin_inset CommandInset citation
+LatexCommand cite
+key "WahlGregorPattingEnderlein2003"
+
+\end_inset
+
+ namely
+\begin_inset Formula 
+\begin{equation}
+\tau_{j}=\begin{cases}
+\delta t & \text{if }j=1\\
+\tau_{j-1}+(\delta t)2^{\lfloor(j-1)/B\rfloor} & \text{if }j>1
+\end{cases}\label{eq:LagTimes}
+\end{equation}
+
+\end_inset
+
+where we take 
+\begin_inset Formula $j=1,...,j_{\text{max}}$
+\end_inset
+
+ with 
+\begin_inset Formula $j_{\text{max}}=n_{\text{casc}}B$
+\end_inset
+
+.
+ The introduced parameters 
+\begin_inset Formula $B$
+\end_inset
+
+ and 
+\begin_inset Formula $n_{\text{casc}}$
+\end_inset
+
+ are both integers and 
+\begin_inset Formula $B$
+\end_inset
+
+ may be thought of as the inverse exponential growth rate of the time lags
+ 
+\begin_inset Formula $\tau_{j}$
+\end_inset
+
+ and 
+\begin_inset Formula $n_{\text{casc}}$
+\end_inset
+
+ is the number of 
+\emph on
+cascades 
+\emph default
+of lag times.
+ A 
+\emph on
+cascade 
+\emph default
+in this context is simply a set of lag times which are evenly spaced.
+ Note also that in (
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "eq:LagTimes"
+
+\end_inset
+
+), 
+\begin_inset Formula $\lfloor\cdot\rfloor$
+\end_inset
+
+ is the floor function.
+ 
+\end_layout
+
+\begin_layout Standard
+In order to avoid a loss of resolution in our data when moving to increasingly
+ larger spaced lag times, one employs a time coarsening step at the conclusion
+ of each cascade of lag times.
+ To do this, divide the set of arrival times by 
+\begin_inset Formula $2$
+\end_inset
+
+ and then round to the nearest lowest integer multiple of 
+\begin_inset Formula $\delta t$
+\end_inset
+
+.
+ Although not mentioned in 
+\begin_inset CommandInset citation
+LatexCommand cite
+key "WahlGregorPattingEnderlein2003"
+
+\end_inset
+
+ one must also do the same to the set of lag times 
+\begin_inset Formula $\{\tau_{j}\}$
+\end_inset
+
+ since otherwise the computation would have two different and incompatible
+ time scales present! This coarsening of the data will eventually create
+ consecutive arrival times in the data which have become equal.
+ Thus when counting collisions, as required in (
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "eq:FinalAutoCorFun"
+
+\end_inset
+
+), these merged data points must count for more collisions than un-merged
+ data points (because they represent several arrival times).
+ This is dealt with in 
+\begin_inset CommandInset citation
+LatexCommand cite
+key "WahlGregorPattingEnderlein2003"
+
+\end_inset
+
+ by systematically eliminating duplicates and keeping track of an additional
+ weight vector to account for these mergers.
+ Since resizing a vector inside of a loop is highly inefficient in MATLAB,
+ I have employed simple alternate method for keeping track of these mergers
+ the details of which is discussed in a following section.
+ I will end this section by mentioning that for each coarsening step, the
+ final collision count must be scaled by whatever factor the data has been
+ coarsened.
+ In this case because of our chosen coarsening method, we must divide the
+ resulting number of collisions at each lag time 
+\begin_inset Formula $\tau_{j}$
+\end_inset
+
+ by a factor of 
+\begin_inset Formula $2^{\lfloor j/B\rfloor}$
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Subsection
+Computing number of collisions
+\end_layout
+
+\begin_layout Standard
+With the previous discussion of time coarsening, I am prepared to discuss
+ the computation of the 
+\emph on
+number of collisions 
+\emph default
+term appearing in (
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "eq:FinalAutoCorFun"
+
+\end_inset
+
+).
+ After some number of time coarsening steps, the data set of arrival times
+ 
+\begin_inset Formula $\{t_{1},t_{2},...,t_{N}\}$
+\end_inset
+
+ as well as the shifted by 
+\begin_inset Formula $\tau_{j}$
+\end_inset
+
+ arrival times 
+\begin_inset Formula $\{t_{1}^{\prime},t_{2}^{\prime},...,t_{N}^{\prime}\}$
+\end_inset
+
+ may contain consecutive values which are equal.
+ Note that contrary to 
+\begin_inset CommandInset citation
+LatexCommand cite
+key "WahlGregorPattingEnderlein2003"
+
+\end_inset
+
+ I am not removing arrival times which have become equal as per some time
+ coarsening step.
+ The algorithm proceeds as follows.
+ First we progress through the arrival times until we find some 
+\begin_inset Formula $t_{a}\geq t_{1}^{\prime}$
+\end_inset
+
+.
+ If 
+\begin_inset Formula $t_{a}=t_{1}^{\prime}$
+\end_inset
+
+, then we count how many subsequent 
+\begin_inset Formula $t_{i}$
+\end_inset
+
+ values (starting from 
+\begin_inset Formula $t_{a}$
+\end_inset
+
+ and including 
+\begin_inset Formula $t_{a}$
+\end_inset
+
+) are also equal to 
+\begin_inset Formula $t_{a}$
+\end_inset
+
+ and assign this value to 
+\begin_inset Formula $w_{1}$
+\end_inset
+
+.
+ We do the same for the subsequent 
+\begin_inset Formula $t_{i}^{\prime}$
+\end_inset
+
+ values (starting from and including 
+\begin_inset Formula $t_{1}^{\prime}$
+\end_inset
+
+) and assign this value to 
+\begin_inset Formula $w_{2}$
+\end_inset
+
+.
+ Then the total collision count is increased by 
+\begin_inset Formula $w_{1}\times w_{2}$
+\end_inset
+
+ and the algorithm repeats using 
+\begin_inset Formula $t_{a+w_{1}-1}$
+\end_inset
+
+ and 
+\begin_inset Formula $t_{1+w_{2}}^{\prime}$
+\end_inset
+
+ as the new starting values.
+ The value of this approach is that it avoids keeping a separate weight
+ vector as well as resizing vectors within a loop both of which have confirmed
+ performance advantages in MATLAB.
+ As a reminder, the total number of collisions should be divided by 
+\begin_inset Formula $2^{\lfloor j/B\rfloor}$
+\end_inset
+
+ as discussed in the previous section.
+\end_layout
+
+\begin_layout Section
+Technical details
+\end_layout
+
+\begin_layout Standard
+Already my method has been described in full, but there are a few implementation
+ details which may be useful to future users and modifiers of the code.
+\end_layout
+
+\begin_layout Subsection
+Initial time coarsening step
+\end_layout
+
+\begin_layout Standard
+In my implementation of the method, the parameter 
+\begin_inset Formula $\delta t$
+\end_inset
+
+ may be set manually.
+ If one chooses to let 
+\begin_inset Formula $\delta t$
+\end_inset
+
+ be the actual smallest time resolution present in the ASPC data, then the
+ code will do nothing to change the arrival data beyond the time coarsening.
+ However, if 
+\begin_inset Formula $\delta t$
+\end_inset
+
+ is set to something larger, the code will perform an initial coarsening
+ step on the data to transform the data to be integer multiples of this
+ specified 
+\begin_inset Formula $\delta t$
+\end_inset
+
+.
+ The final result will be scaled accordingly, and this step serves as a
+ starting point for the sequence of lag times.
+ In the data sets I tested, it was not needed to use 
+\begin_inset Formula $\delta t$
+\end_inset
+
+ as small as the smallest time resolution so this feature was quite handy
+ for producing usable results.
+\end_layout
+
+\begin_layout Subsection
+Time coarsening options
+\end_layout
+
+\begin_layout Standard
+One may wish to choose time lags which are spaced in some different manner
+ than chosen in this report.
+ The current iteration of this code performs a time coarsening step each
+ time the spacing between consecutive lag times.
+ Although one is always free to choose whichever lag times they please,
+ it is desirable that the coarsening exactly corresponds to the increased
+ spacing of the chosen lag times.
+ It is strictly required that if the ASPC data is coarsened by a factor
+ of 
+\begin_inset Formula $\alpha$
+\end_inset
+
+ (so that the arrival times are divided by a factor of 
+\begin_inset Formula $\alpha$
+\end_inset
+
+ and then rounded), then the resulting number of collisions appearing in
+ (
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "eq:FinalAutoCorFun"
+
+\end_inset
+
+) must also be scaled by 
+\begin_inset Formula $\alpha$
+\end_inset
+
+ (divided by 
+\begin_inset Formula $\alpha$
+\end_inset
+
+).
+ A good rule of thumb then is that if the spacing between arrival times
+ increases by a factor of 
+\begin_inset Formula $\alpha$
+\end_inset
+
+, then the ASPC data should be coarsened by a factor of 
+\begin_inset Formula $\alpha$
+\end_inset
+
+ which then requires that the number of collisions be scaled by 
+\begin_inset Formula $\alpha$
+\end_inset
+
+ also.
+\end_layout
+
+\begin_layout Subsection
+Rounding floats
+\end_layout
+
+\begin_layout Standard
+There was one enduring error in my code during its development which was
+ caused by how floating point numbers work in MATLAB.
+ During the time coarsening step, I was performing a rounding step via the
+ 
+\begin_inset Quotes eld
+\end_inset
+
+floor
+\begin_inset Quotes erd
+\end_inset
+
+ function and then doing some arithmetic on the rounded floating point number.
+ In MATLAB, doing this may cause nonzero terms to appear in the 1e-14 place
+ which can be devastating when one is trying to check if two arrival times
+ are equal.
+ To avoid this, 
+\begin_inset CommandInset citation
+LatexCommand cite
+key "WahlGregorPattingEnderlein2003"
+
+\end_inset
+
+ used the integer data type which they claimed was faster.
+ However, in my experience with MATLAB, using integers which were large
+ enough to deal with the size of the order of time resolution of the ASPC
+ data was prohibitively slow.
+ Thus my code still uses floats but I have taken care not to do arithmetic
+ on values after they have been rounded.
+\end_layout
+
+\begin_layout Subsection
+Choice of returned lag times
+\end_layout
+
+\begin_layout Standard
+There is a subtle issue resulting from the fact that lag times must be time
+ coarsened in the same way the ASPC data is.
+ One is faced with the question wether to return the originally generated
+ lag times or the progressively time coarsened ones.
+ It makes more sense to return the progressively time coarsened ones and
+ this decision on my part appears to agree with the industry software so
+ far as I can tell.
+ My evidence is based on comparing results of both and noticing which agreed
+ better.
+\end_layout
+
+\begin_layout Subsection
+Inline 
+\begin_inset Quotes eld
+\end_inset
+
+if
+\begin_inset Quotes erd
+\end_inset
+
+ statements
+\end_layout
+
+\begin_layout Standard
+MATLAB has many quarks which cause it run very quickly in some cases and
+ shocking slow in others.
+ One of these which became apparent in my coding involved the break statements
+ in my main loop.
+ I have a few 
+\begin_inset Quotes eld
+\end_inset
+
+if
+\begin_inset Quotes erd
+\end_inset
+
+ statements which are of the form:
+\end_layout
+
+\begin_layout Standard
+\begin_inset listings
+inline false
+status open
+
+\begin_layout Plain Layout
+
+if (condition), break, end
+\end_layout
+
+\end_inset
+
+The traditional way of writing this in MATLAB is
+\end_layout
+
+\begin_layout Standard
+\begin_inset listings
+inline false
+status open
+
+\begin_layout Plain Layout
+
+if (condition)
+\end_layout
+
+\begin_layout Plain Layout
+
+   break
+\end_layout
+
+\begin_layout Plain Layout
+
+end
+\end_layout
+
+\end_inset
+
+which one would expect to be identical.
+ However, the former is MATLABs notation for an 
+\begin_inset Quotes eld
+\end_inset
+
+inline if
+\begin_inset Quotes erd
+\end_inset
+
+ statement which is apparently much much faster since using the latter form
+ will slow down code almost to a halt! I have no good understanding as to
+ why this should be, but such is no less the case.
+ In short, beware!
+\end_layout
+
+\begin_layout Standard
+\begin_inset CommandInset bibtex
+LatexCommand bibtex
+bibfiles "goldsmith"
+options "plain"
+
+\end_inset
+
+
+\end_layout
+
+\end_body
+\end_document
